@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate")
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")
 
 library(pacman)
 p_load(lmerTest, pastecs, ggplot2, tidyverse, gdata, MuMIn, effects, stringr, plyr, Metrics, vtreat, cvTools, simr,stringi, e1071, caret,sjPlot, boot, zoo)
@@ -41,7 +41,7 @@ g7_sync <- read.csv("Study2_G7_T2_Synchronous.csv")
   N.B: remember the slides: artifacts, downsampling, scaling.
   N.B. The gridExtra::grid.arrange() function allows you to display the plots side by side. E.g. grid.arrange(plot1, plot2, plot3, ncol=3)
   
-Preprocessing
+### Preprocessing
 ```{r Downsampling}
 ## Downsampling first
 p_load(groupdata2)
@@ -105,7 +105,6 @@ g7_turn_1$Resp2 <- scale(g7_turn_1$Resp2)
 
 ```
 
-
 ```{r Plots}
 ### Respiration plot
 #conv
@@ -135,14 +134,14 @@ ggplot(g7_turn_1, aes(time, Resp1)) +
 ggplot(g7_conv_1, aes(time, HR1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, HR2), colour = "dark grey") +
-  labs(x ="Time", y = "Heart rate", title ="Hear rate as a function of time (turn-taking)") +
+  labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (turn-taking)") +
   theme(legend.position ="none")
 
 #sync
 ggplot(g7_sync_1, aes(time, HR1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, HR2), colour = "dark grey") +
-  labs(x ="Time", y = "Heart rate", title ="Hear rate as a function of time (sync)") +
+  labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (sync)") +
   theme(legend.position ="none")
 
 #turn
@@ -154,10 +153,9 @@ ggplot(g7_turn_1, aes(time, HR1)) +
 
 ```
 
-
 ```{r Artifacts}
-hr_threshold=2.75
-rep_threshold
+hr_threshold = 2.75
+resp_threshold = 2.5
 
 # Function
 cillitbang <- function(ts,threshold) {  
@@ -168,23 +166,176 @@ cillitbang <- function(ts,threshold) {
   return(ts) 
   } 
 
+    ### HEART RATE
+# Conv
+g7_conv_1$HR1 <- cillitbang(g7_conv_1$HR1,hr_threshold)
+g7_conv_1$HR2 <- cillitbang(g7_conv_1$HR2,hr_threshold)
 
-# HR
-#g7_conv1$HR1=cillitbang(g7_conv1$HR1,threshold)
-#g7_conv1$HR2=cillitbang(g7_conv1$HR2,threshold)
+# Sync
+g7_sync_1$HR1 <- cillitbang(g7_sync_1$HR1,hr_threshold)
+g7_sync_1$HR2 <- cillitbang(g7_sync_1$HR2,hr_threshold)
 
-# Respiration
-#g7_conv1$Resp1=cillitbang(g7_conv1$Resp1,threshold)
-#g7_conv1$Resp2=cillitbang(g7_conv1$Resp2,threshold)
+#Turn
+g7_turn_1$HR1 <- cillitbang(g7_turn_1$HR1,hr_threshold)
+g7_turn_1$HR2 <- cillitbang(g7_turn_1$HR2,hr_threshold)
 
+    ### RESPIRATION
+# Conv
+g7_conv_1$Resp1 <- cillitbang(g7_conv_1$Resp1, resp_threshold )
+g7_conv_1$Resp2 <- cillitbang(g7_conv_1$Resp2,resp_threshold )
+
+# Sync
+g7_sync_1$Resp1 <- cillitbang(g7_sync_1$Resp1,resp_threshold )
+g7_sync_1$Resp2 <- cillitbang(g7_sync_1$Resp2,resp_threshold )
+
+#Turn
+g7_turn_1$Resp1 <- cillitbang(g7_turn_1$Resp1,resp_threshold)
+g7_turn_1$Resp2 <- cillitbang(g7_turn_1$Resp2,resp_threshold)
 ```
 
 - Can you eye-ball which condition if any displays more physiological coordination?
+Answer: HR for sync is somewhat coordinated. 
+
 - Run crqa on heart rate and respiration data (find parameters, run crqa)
+```{r crqa}
+#Package needed for optimizeParam
+p_load("crqa")
+
+# Finding the optimal parameters: run on all pairs:
+
+#lgM = Maximum lag
+#radius span = 2?     increasing radius step means smaller steps
+#radius sample = 10?  number of radius points within the steps to be sampled
+par = list(lgM = 50, steps = seq(1, 6, 1), radiusspan = 100, radiussample = 40, normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, tw = 0, whiteline =FALSE, recpt = FALSE, fnnpercent = 10, typeami = "mindip") 
+
+# Respiration optimisation of parameters
+par_conv_resp = optimizeParam(g7_conv_1$Resp1, g7_conv_1$Resp2, par, min.rec = 3.5, max.rec = 4.5)
+par_conv_resp
+par_turn_resp = optimizeParam(na.omit(g7_turn_1$Resp1), na.omit(g7_turn_1$Resp2), par, min.rec = 3.5, max.rec = 4.5)
+par_turn_resp
+par_sync_resp = optimizeParam(g7_sync_1$Resp1, g7_sync_1$Resp2, par, min.rec = 3.5, max.rec = 4.5)
+par_sync_resp
+
+# HR optimisation of parameters
+par_conv_hr = optimizeParam(g7_conv_1$HR1, g7_conv_1$HR2, par, min.rec = 3.5, max.rec = 4.5)
+par_conv_hr
+par_turn_hr = optimizeParam(na.omit(g7_turn_1$HR1), na.omit(g7_turn_1$HR2), par, min.rec = 3.5, max.rec = 4.5)
+par_turn_hr
+par_sync_hr = optimizeParam(g7_sync_1$HR1, g7_sync_1$HR2, par, min.rec = 3.5, max.rec = 4.5)
+par_sync_hr
+
+radius <- 0.2876967 # Radius – cutoff boundary that will determine if two points are recurrent or not
+delay <-  25        # Delay – how many points to consider when looking for recurrence 
+emddim <- 2         # Embedding Dimension – lag unit
+  
+
+# Choose a common value for delay, emb.dim and radius
+Results=crqa (g7_conv_1$HR1, g7_conv_1$HR2, delay=delay, embed=emddim, radius=radius, normalize=0, rescale=0, mindiagline = 2, minvertline = 2)
+
+# Represent the plot:
+RP=Results$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white","blue4")
+image(RP, xlab = "", ylab = "", col = cols)
+
+# Explore the lags of coordination:
+Profile=drpdfromts(g7_conv_1$Resp1, g7_conv_1$Resp2, datatype = 'continuous', ws=50, radius=radius)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+maxlag = Profile$maxlag/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+
+# Final plot
+ggplot(Prof, aes(timecourse, profile)) +
+  geom_line() +
+  geom_vline(xintercept = timecourse[maxlag], colour='red')
+
+```
+
 - Does this tell you more than just eyeballing the plots?
+
 
 ### Systematically pre-process the data
 - Loop through all the files (either with a loop or with a function), check which files should be excluded, if any, and save the pre-processed time-series. Tip: plot and visually inspect the data to figure out which should be excluded.
+
+# DATA LOADING
+Chunks:
+1. files) create list of filenames
+2. loading function) function to import and clean one csv file
+```{r File list}
+# List of file names to get an overview of the data
+files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+```
+
+```{r loading function}
+read_heart <- function(filename) {
+    raw <- read_csv(filename,
+                    col_types = list(time = col_double(),
+                                     Resp1 = col_double(),
+                                     Resp2 = col_double(),
+                                     ECG1 = col_double(),
+                                     ECG2 = col_double(),
+                                     ReadingStart = col_integer(),
+                                     ReadingStop = col_integer(),
+                                     HR1 = col_double(),
+                                     HR2 = col_double()))
+    name <- as.character(filename)
+    
+    data <- cbind(raw, name) %>%
+      mutate(nrow = nrow(raw)) #%>%
+      #summarise()
+    
+    data <- data %>%
+      mutate(name = str_remove_all(name, "data/"),
+         name = str_remove_all(name, ".csv")) %>%
+      
+      mutate(study = substr(name, 6, 6),
+         group = substr(name, 9, 10),
+         group = str_remove_all(group, "_"),
+         t = substr(name, 12, 13),
+         t = str_remove_all(t, "_"),
+         t = str_remove_all(t, "T"),
+         condition = substr(name, 14, 30),
+         condition = str_remove_all(condition, "_")) %>%
+      
+      select(-name)
+    
+    return(data)
+}
+
+#running function
+read_heart(g7_conv_1)
+
+#mutating
+all <- map_df(files, read_heart) %>%
+  mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group))
+
+#testset
+g7_conv <- as.data.frame(files) %>%
+  filter(str_detect(files, "Study7")) %>%
+  filter(str_detect(files, "G7"))
+
+g7_conv <- as.character(g7_conv$files)
+
+d <- map_df(g7_conv, read_heart) %>%
+   mutate(t = factor(t),
+         condition = factor(condition),
+         readingStart = rnorm(637897, 5, sd = 1), 
+         readingStop = rnorm(637897, 50, sd = 1),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group)) %>%
+  rownames_to_column()
+
+```
+
+
 - Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
 
 ### Creating controls: shuffled controls
@@ -261,15 +412,16 @@ How to detect?
 - Shows a dot (one participant on one axis, another on the other) if their data are recurring in time
 - Important to run the whole analysis with the same threshold --> otherwise not comparable
 - Once given parameters, the algorithm loops thorugh the whole plot
-      - A line: If two timeseries are following each other and are synchronised. Can be across time. They are oftenmost the most           interesting. Many long lines: coordination between particioanst!
-      - A box : If two timeseries are following each other in both time and with a small variability
+      - A line: If two timeseries are following each other and are synchronised. Can be across time. They are oftenmost the most                interesting. Many long lines: coordination between participants!
+      - Diagonal lines are most interesting!
+      - A box : If two timeseries are following each other in both time and with a small variability. The boxes could indicate errors           though
 
 2. Measures/features to look for
 - RR: Recurrence rate. The amount of the plot that is black. The absolute number will be meaningless, but interesting when             comparing
-- L:The average length of the diagonal lines. The longer the L = the longer the line length = the longer stretches of coordination
+- L: The average length of the diagonal lines. The larger the L = the longer the line length = the longer stretches of coordination. An   L value of 2 indicate not a lot of coordination (this is the minimum value!)
 - Lmax: Maximal length of the diagonal lines. 
-- TT: Trapping time. Average lenght of the horizontal and vertical lines (they mean the same thing, but are difefrent participants perfoming!). Refers to the squares
-- DET: The proportion of the all matches being part of a diagonal line. 
+- TT: Trapping time. Average lenght of the horizontal and vertical lines (they mean the same thing, but are difefrent participants        perfoming!). Refers to the squares
+- DET: Determinism. The proportion of the all matches being part of a diagonal line. 
     - High DET = When the signals meet and do it for a while in a row 
     - Low DET = might be because the coordination is by chance
 
