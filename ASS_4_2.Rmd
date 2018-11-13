@@ -237,9 +237,9 @@ par_sync_hr = optimizeParam(g7_sync$HR1, g7_sync$HR2, par, min.rec = 3.5, max.re
 par_sync_hr
 
 
-radius <- 0.2876967   # Radius – cutoff boundary that will determine if two points are recurrent or not
-delay <-  25          # Delay – how many points to consider when looking for recurrence 
-emddim <- 2           # Embedding Dimension – lag unit
+radius <- 0.2876967   # Radius ??? cutoff boundary that will determine if two points are recurrent or not
+delay <-  25          # Delay ??? how many points to consider when looking for recurrence 
+emddim <- 2           # Embedding Dimension ??? lag unit
   
 
 # Choose a common value for delay, emb.dim and radius
@@ -624,7 +624,7 @@ How to detect?
   2. Shuffled pairs: Randomising the order: what RQA measures do we get from a random distribution of numbers, losing the actual        progress of the HR etc
   3. Surrogate pairs: from the pairs I can calculate the distribution of L's. The world is in these surrogate pairs (the paurs form       the popultion). Once you have a distribution, we compare our L to the baseline of the population
           - What coordination are we capturing when we're comparing actual pairs and surrogate pairs?
-          - What is left is what happens by being in the same room, tested in the same task, being together --> what we're interested in
+          - What is left is what happens by being in the same room, tested in the same task, being together --> what we're                    interested in
 
 
 --- FROM MALTE'S 2ND CLASS ---
