@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")  
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")    
  
 locpath <- setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")  
 
@@ -16,18 +16,15 @@ p_load(lmerTest, pastecs, ggplot2, tidyverse, gdata, MuMIn, effects, stringr, pl
 ### packages needed for crqa analysis
 # library(crqa)
 #library(ggplot2)
-#library(reshape2)
-#library(tseriesChaos)
-#library(gridExtra) 
+library(reshape2)
+library(tseriesChaos)
+library(gridExtra) 
+library(crqa)
 
  
 # from class
-#zoo::ina.spline
+#zoo::ina.spline 
 
-# Loading group 7
-g7_conv <- read.csv("Study2_G7_T1_Conversation.csv")
-g7_turn <- read.csv("Study2_G7_T3_TurnTaking.csv")
-g7_sync <- read.csv("Study2_G7_T2_Synchronous.csv")
 ```
 
 ## Analysing Heart Rate and Respiration data
@@ -40,99 +37,40 @@ The goal of this assignment is to first familiarize you with heart rate, and res
 
 - Choose one pair (one pair, three conditions)
 - Load the logs
-```{r Load}
-# Loading group 7
-g7_conv <- read.csv("Study2_G7_T1_Conversation.csv")
-g7_turn <- read.csv("Study2_G7_T3_TurnTaking.csv")
-g7_sync <- read.csv("Study2_G7_T2_Synchronous.csv")
+```{r Loading}
+# Loading group 1 
+conv <- read.csv("Study3_G1_T3_Conversation.csv")
+turn <- read.csv("Study3_G1_T2_TurnTaking.csv")
+sync <- read.csv("Study3_G1_T1_Synchronous.csv")
+
+# Changing variable names
+conv <- rename.vars(conv,"TimeMs", "time")
+turn <- rename.vars(turn,"TimeMs", "time")
+sync <- rename.vars(sync,"TimeMs", "time")
 ```
 
 - Produce a plot of the participants' respiration signal and a different one of the participants' HR signal (for inspecting whether the data is usable)
   N.B: remember the slides: artifacts, downsampling, scaling.
   N.B. The gridExtra::grid.arrange() function allows you to display the plots side by side. E.g. grid.arrange(plot1, plot2, plot3, ncol=3)
-  
-### Preprocessing
-```{r Downsampling}
-## Downsampling first  
-p_load(groupdata2) 
 
-g7_turn_1 = g7_turn %>% 
-  group(n = 100, method = 'greedy') %>% 
-  dplyr::summarise(time = mean(time,na.rm=T), 
-                   HR1 = mean(HR1,na.rm=T), 
-                   HR2 = mean(HR2,na.rm=T), 
-                   Resp1 = mean(Resp1,na.rm=T),  
-                   Resp2 = mean(Resp2,na.rm=T))
-
-g7_sync_1 = g7_sync %>%
-  group(n = 100, method = 'greedy') %>% 
-  dplyr::summarise(time = mean(time,na.rm=T), 
-                   HR1 = mean(HR1,na.rm=T), 
-                   HR2 = mean(HR2,na.rm=T), 
-                   Resp1 = mean(Resp1,na.rm=T), 
-                   Resp2 = mean(Resp2,na.rm=T))
-
-g7_conv_1 = g7_conv %>%
-  group(n = 100, method = 'greedy') %>% 
-  dplyr::summarise(time = mean(time,na.rm=T), 
-                   HR1 = mean(HR1,na.rm=T), 
-                   HR2 = mean(HR2,na.rm=T), 
-                   Resp1 = mean(Resp1,na.rm=T), 
-                   Resp2 = mean(Resp2,na.rm=T))
-
-# Group by chunks of 100 and take mean time etc of each group
-
-```
-
-```{r Rescaling}
-### HR
-# Conversation
-g7_conv_1$HR1 <- scale(g7_conv_1$HR1)
-g7_conv_1$HR2 <- scale(g7_conv_1$HR2)
-
-# Sync
-g7_sync_1$HR1 <- scale(g7_sync_1$HR1)
-g7_sync_1$HR2 <- scale(g7_sync_1$HR2)
-
-# Turn
-g7_turn_1$HR1 <- scale(g7_turn_1$HR1)
-g7_turn_1$HR2 <- scale(g7_turn_1$HR2)
-
-
-
-### Respiration
-# Conversation
-g7_conv_1$Resp1 <- scale(g7_conv_1$Resp1)
-g7_conv_1$Resp2 <- scale(g7_conv_1$Resp2)
-
-# Sync
-g7_sync_1$Resp1 <- scale(g7_sync_1$Resp1)
-g7_sync_1$Resp2 <- scale(g7_sync_1$Resp2)
-
-# Turn
-g7_turn_1$Resp1 <- scale(g7_turn_1$Resp1)
-g7_turn_1$Resp2 <- scale(g7_turn_1$Resp2)
-
-```
-
-```{r Plots}
+```{r First plots}
 ### Respiration plot 
 #conv
-ggplot(g7_conv_1, aes(time, Resp1)) +
+ggplot(conv, aes(time, Resp1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, Resp2), colour = "dark grey") +
   labs(x ="Time", y = "Respiration", title="Respiration as a function of time (Conversation)") +
   theme(legend.position ="none")
 
 #sync
-ggplot(g7_sync_1, aes(time, Resp1)) +
+ggplot(sync, aes(time, Resp1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, Resp2), colour = "dark grey") +
   labs(x ="Time", y = "Respiration", title ="Respiration as a function of time (Sync)") +
   theme(legend.position ="none")
 
 #turn 
-ggplot(g7_turn_1, aes(time, Resp1)) +
+ggplot(turn, aes(time, Resp1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, Resp2), colour = "dark grey") +
   labs(x ="Time", y = "Greedy", title ="Respiration as a function of time (turn-taking)") +
@@ -141,21 +79,133 @@ ggplot(g7_turn_1, aes(time, Resp1)) +
 
 ### HR plot
 #conv
-ggplot(g7_conv_1, aes(time, HR1)) +
+ggplot(conv, aes(time, HR1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, HR2), colour = "dark grey") +
   labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (turn-taking)") +
   theme(legend.position ="none")
  
 #sync
-ggplot(g7_sync_1, aes(time, HR1)) +
+ggplot(sync, aes(time, HR1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, HR2), colour = "dark grey") +
   labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (sync)") +
   theme(legend.position ="none")
 
 #turn
-ggplot(g7_turn_1, aes(time, HR1)) +
+ggplot(turn, aes(time, HR1)) +
+  geom_line( colour = "red") +
+  geom_line(aes(time, HR2), colour = "dark grey") +
+  labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (turn-taking)") +
+  theme(legend.position ="none")
+
+
+```
+
+### Preprocessing
+```{r Downsampling}
+## Downsampling first   
+p_load(groupdata2) 
+
+turn_1 = turn %>% 
+  group(n = 100, method = 'greedy') %>% 
+  dplyr::summarise(time = mean(time,na.rm=T), 
+                   HR1 = mean(HR1,na.rm=T),  
+                   HR2 = mean(HR2,na.rm=T), 
+                   Resp1 = mean(Resp1,na.rm=T),  
+                   Resp2 = mean(Resp2,na.rm=T))
+
+sync_1 = sync %>%
+  group(n = 100, method = 'greedy') %>% 
+  dplyr::summarise(time = mean(time,na.rm=T), 
+                   HR1 = mean(HR1,na.rm=T), 
+                   HR2 = mean(HR2,na.rm=T), 
+                   Resp1 = mean(Resp1,na.rm=T), 
+                   Resp2 = mean(Resp2,na.rm=T))
+
+conv_1 = conv %>%
+  group(n = 100, method = 'greedy') %>% 
+  dplyr::summarise(time = mean(time,na.rm=T), 
+                   HR1 = mean(HR1,na.rm=T), 
+                   HR2 = mean(HR2,na.rm=T), 
+                   Resp1 = mean(Resp1,na.rm=T), 
+                   Resp2 = mean(Resp2,na.rm=T))
+
+# Group by chunks of 100 and take mean time etc of each group
+```
+
+```{r Rescaling}
+### HR 
+# Conversation
+conv_1$HR1 <- scale(conv_1$HR1)
+conv_1$HR2 <- scale(conv_1$HR2)
+
+# Sync
+sync_1$HR1 <- scale(sync_1$HR1)
+sync_1$HR2 <- scale(sync_1$HR2)
+
+# Turn
+turn_1$HR1 <- scale(turn_1$HR1)
+turn_1$HR2 <- scale(turn_1$HR2)
+
+
+
+### Respiration
+# Conversation
+conv_1$Resp1 <- scale(conv_1$Resp1)
+conv_1$Resp2 <- scale(conv_1$Resp2)
+
+# Sync
+sync_1$Resp1 <- scale(sync_1$Resp1)
+sync_1$Resp2 <- scale(sync_1$Resp2)
+
+# Turn
+turn_1$Resp1 <- scale(turn_1$Resp1)
+turn_1$Resp2 <- scale(turn_1$Resp2)
+
+```
+
+```{r Plots preprocessed}
+### Respiration plot 
+#conv
+ggplot(conv_1, aes(time, Resp1)) +
+  geom_line( colour = "red") +
+  geom_line(aes(time, Resp2), colour = "dark grey") +
+  labs(x ="Time", y = "Respiration", title="Respiration as a function of time (Conversation)") +
+  theme(legend.position ="none")
+
+#sync
+ggplot(sync_1, aes(time, Resp1)) +
+  geom_line( colour = "red") +
+  geom_line(aes(time, Resp2), colour = "dark grey") +
+  labs(x ="Time", y = "Respiration", title ="Respiration as a function of time (Sync)") +
+  theme(legend.position ="none")
+
+#turn 
+ggplot(turn_1, aes(time, Resp1)) +
+  geom_line( colour = "red") +
+  geom_line(aes(time, Resp2), colour = "dark grey") +
+  labs(x ="Time", y = "Greedy", title ="Respiration as a function of time (turn-taking)") +
+  theme(legend.position ="none")
+
+
+### HR plot
+#conv
+ggplot(conv_1, aes(time, HR1)) +
+  geom_line( colour = "red") +
+  geom_line(aes(time, HR2), colour = "dark grey") +
+  labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (conv)") +
+  theme(legend.position ="none")
+ 
+#sync
+ggplot(sync_1, aes(time, HR1)) +
+  geom_line( colour = "red") +
+  geom_line(aes(time, HR2), colour = "dark grey") +
+  labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (sync)") +
+  theme(legend.position ="none")
+
+#turn
+ggplot(turn_1, aes(time, HR1)) +
   geom_line( colour = "red") +
   geom_line(aes(time, HR2), colour = "dark grey") +
   labs(x ="Time", y = "Heart rate", title ="Heart rate as a function of time (turn-taking)") +
@@ -164,6 +214,8 @@ ggplot(g7_turn_1, aes(time, HR1)) +
 ```
 
 ```{r Artifacts}
+# Removing artifacts 
+
 hr_threshold = 2.75 
 resp_threshold = 2.5 
 
@@ -178,39 +230,38 @@ cillitbang <- function(ts,threshold) {
 
     ### HEART RATE
 # Conv
-g7_conv_1$HR1 <- cillitbang(g7_conv_1$HR1,hr_threshold)
-g7_conv_1$HR2 <- cillitbang(g7_conv_1$HR2,hr_threshold)
+conv_1$HR1 <- cillitbang(conv_1$HR1,hr_threshold)
+conv_1$HR2 <- cillitbang(conv_1$HR2,hr_threshold)
 
 # Sync
-g7_sync_1$HR1 <- cillitbang(g7_sync_1$HR1,hr_threshold)
-g7_sync_1$HR2 <- cillitbang(g7_sync_1$HR2,hr_threshold)
+sync_1$HR1 <- cillitbang(sync_1$HR1,hr_threshold)
+sync_1$HR2 <- cillitbang(sync_1$HR2,hr_threshold)
 
 #Turn
-g7_turn_1$HR1 <- cillitbang(g7_turn_1$HR1,hr_threshold)
-g7_turn_1$HR2 <- cillitbang(g7_turn_1$HR2,hr_threshold)
+turn_1$HR1 <- cillitbang(turn_1$HR1,hr_threshold)
+turn_1$HR2 <- cillitbang(turn_1$HR2,hr_threshold)
 
     ### RESPIRATION
 # Conv
-g7_conv_1$Resp1 <- cillitbang(g7_conv_1$Resp1, resp_threshold )
-g7_conv_1$Resp2 <- cillitbang(g7_conv_1$Resp2,resp_threshold )
+conv_1$Resp1 <- cillitbang(conv_1$Resp1, resp_threshold )
+conv_1$Resp2 <- cillitbang(conv_1$Resp2,resp_threshold )
 
 # Sync
-g7_sync_1$Resp1 <- cillitbang(g7_sync_1$Resp1,resp_threshold )
-g7_sync_1$Resp2 <- cillitbang(g7_sync_1$Resp2,resp_threshold )
+sync_1$Resp1 <- cillitbang(sync_1$Resp1,resp_threshold )
+sync_1$Resp2 <- cillitbang(sync_1$Resp2,resp_threshold )
 
 #Turn
-g7_turn_1$Resp1 <- cillitbang(g7_turn_1$Resp1,resp_threshold)
-g7_turn_1$Resp2 <- cillitbang(g7_turn_1$Resp2,resp_threshold)
+turn_1$Resp1 <- cillitbang(turn_1$Resp1,resp_threshold)
+turn_1$Resp2 <- cillitbang(turn_1$Resp2,resp_threshold)
 ```
 
 - Can you eye-ball which condition if any displays more physiological coordination?
 Answer: HR for sync is somewhat coordinated. 
 
+### Running CRQA
+
 - Run crqa on heart rate and respiration data (find parameters, run crqa)
 ```{r crqa}
-#Package needed for optimizeParam
-p_load("crqa")
-
 # Finding the optimal parameters: run on all pairs:
 
 #lgM = Maximum lag
@@ -221,19 +272,19 @@ par = list(lgM = 50, steps = seq(1, 6, 1), radiusspan = 100, radiussample = 40, 
   
 
 # Respiration optimisation of parameters
-par_conv_resp = optimizeParam(g7_conv_1$Resp1, g7_conv_1$Resp2, par, min.rec = 3.5, max.rec = 4.5)
+par_conv_resp = optimizeParam(na.omit(conv_1$Resp1), na.omit(conv_1$Resp2), par, min.rec = 2, max.rec = 5)
 par_conv_resp
-par_turn_resp = optimizeParam(na.omit(g7_turn_1$Resp1), na.omit(g7_turn_1$Resp2), par, min.rec = 3.5, max.rec = 4.5)
+par_turn_resp = optimizeParam(na.omit(turn_1$Resp1), na.omit(turn_1$Resp2), par, min.rec = 2, max.rec = 5)
 par_turn_resp
-par_sync_resp = optimizeParam(g7_sync_1$Resp1, g7_sync_1$Resp2, par, min.rec = 3.5, max.rec = 4.5)
+par_sync_resp = optimizeParam(na.omit(sync_1$Resp1), na.omit(sync_1$Resp2), par, min.rec = 2, max.rec = 5)
 par_sync_resp
 
 # HR optimisation of parameters
-par_conv_hr = optimizeParam(g7_conv$HR1, g7_conv$HR2, par, min.rec = 3.5, max.rec = 4.5)
+par_conv_hr = optimizeParam(na.omit(conv$HR1), na.omit(conv$HR2), par, min.rec = 3.5, max.rec = 4.5)
 par_conv_hr
-par_turn_hr = optimizeParam(na.omit(g7_turn_1$HR1), na.omit(g7_turn_1$HR2), par, min.rec = 3.5, max.rec = 4.5)
+par_turn_hr = optimizeParam(na.omit(turn_1$HR1), na.omit(turn_1$HR2), par, min.rec = 3.5, max.rec = 4.5)
 par_turn_hr
-par_sync_hr = optimizeParam(g7_sync$HR1, g7_sync$HR2, par, min.rec = 3.5, max.rec = 4.5)
+par_sync_hr = optimizeParam(na.omit(sync$HR1), na.omit(sync$HR2), par, min.rec = 3.5, max.rec = 4.5)
 par_sync_hr
 
 
@@ -276,92 +327,27 @@ ggplot(Prof, aes(timecourse, profile)) +
 Chunks:
 1. files) create list of filenames
 2. loading function) function to import and clean one csv file
-```{r File list}
-# List of file names to get an overview of the data
-files <- list.files(path = "data/", pattern="*.csv", full.names = T)
-```
 
-```{r loading - JanCo}
-read_heart <- function(filename) {
-    raw <- read_csv(filename,
-                    col_types = list(time = col_double(),
-                                     Resp1 = col_double(),
-                                     Resp2 = col_double(),
-                                     ECG1 = col_double(),
-                                     ECG2 = col_double(),
-                                     ReadingStart = col_integer(),
-                                     ReadingStop = col_integer(),
-                                     HR1 = col_double(),
-                                     HR2 = col_double()))
-    name <- as.character(filename)
-    
-    data <- cbind(raw, name) %>%
-      mutate(nrow = nrow(raw)) #%>%
-      #summarise()
-    
-    data <- data %>%
-      mutate(name = str_remove_all(name, "data/"),
-         name = str_remove_all(name, ".csv")) %>%
-      
-      mutate(study = substr(name, 6, 6),
-         group = substr(name, 9, 10),
-         group = str_remove_all(group, "_"),
-         t = substr(name, 12, 13),
-         t = str_remove_all(t, "_"),
-         t = str_remove_all(t, "T"),
-         condition = substr(name, 14, 30),
-         condition = str_remove_all(condition, "_")) %>%
-      
-      select(-name)
-    
-    return(data)
-}
+- Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
 
-#running function
-read_heart(g7_conv_1)
+```{r Loop to plot and preprocess} 
+ 
+p_load(gdata)  
 
-#mutating
-all <- map_df(files, read_heart) %>%
-  mutate(t = factor(t),
-         condition = factor(condition),
-         ReadingStart = as.numeric(ReadingStart),
-         ReadingStop = as.numeric(ReadingStop),
-         nrow = as.numeric(nrow),
-         study = factor(study),
-         group = factor(group))
-
-#testset
-g7_conv <- as.data.frame(files) %>%
-  filter(str_detect(files, "Study7")) %>%
-  filter(str_detect(files, "G7"))
-
-g7_conv <- as.character(g7_conv$files)
-
-d <- map_df(g7_conv, read_heart) %>%
-   mutate(t = factor(t),
-         condition = factor(condition),
-         readingStart = rnorm(637897, 5, sd = 1), 
-         readingStop = rnorm(637897, 50, sd = 1),
-         nrow = as.numeric(nrow),
-         study = factor(study),
-         group = factor(group)) %>%
-  rownames_to_column()
-
-```
-
-```{r + loop to plot and preprocess}
 #Function that downsamples, rescales and  removes outliers. 
 #Then print plots for HR and respiration in one 
-#Lastly, creates variables with optimal parameters for crqa.  
-
+#Lastly, creates variables with optimal parameters for crqa.   
+ 
 #Output = dataframe and prints plots
 
 vanish = function(filename, graphs = T, bangbycillit = T){
   
   #load file as csv
-  df = read_csv(filename)
+  df = read_csv(filename) 
   
-  #Downsample
+  df <- rename.vars(df, "TimeMs", "time")
+  
+  #Downsample 
   df = df %>%    
   group(n= 100, method= 'greedy') %>%    
   dplyr::summarise(time= mean(time,na.rm=T), HR1 = mean(HR1,na.rm=T), HR2 = mean(HR2,na.rm=T), Resp1 =  mean(Resp1,na.rm=T), Resp2 = mean(Resp2,na.rm=T)) 
@@ -373,13 +359,13 @@ vanish = function(filename, graphs = T, bangbycillit = T){
   df$HR2=scale(df$HR2)
   
   if(bangbycillit == T) {
+    
   #Removing outliers using thresholds from before
   df$HR1=cillitbang(df$HR1,hr_threshold)
   df$HR2=cillitbang(df$HR2, hr_threshold)
   df$Resp1=cillitbang(df$Resp1, resp_threshold)
   df$Resp2=cillitbang(df$Resp2, resp_threshold)
   }
-  
   
   #Adding columns with study identification
   df$study = str_extract(filename, "Study(\\d)") 
@@ -397,7 +383,7 @@ vanish = function(filename, graphs = T, bangbycillit = T){
     par = list(lgM =  50, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2, minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip")
   
   #Parameters for HR data
-  optparamHR = try(optimizeParam(df$HR1, df$HR2, par, min.rec = 3.5, max.rec = 4.5))
+  optparamHR = try(optimizeParam(df$HR1, df$HR2, par, min.rec = 2, max.rec = 5))
   
   #Using loop from before, if the optimize function succeeded, save the results to the dataframe - if not, put NAs 
    if (length(optparamHR) > 1) {
@@ -416,7 +402,7 @@ vanish = function(filename, graphs = T, bangbycillit = T){
    }
   
   #Now for respiration data
-  optparamResp = try(optimizeParam(df$Resp1, df$Resp2, par, min.rec = 3.5, max.rec = 4.5))
+  optparamResp = try(optimizeParam(df$Resp1, df$Resp2, par, min.rec = 2, max.rec = 5))
  
   #if the optimize function succeeded, save the results to the dataframe - if not, put NAs 
   if (length(optparamResp) > 1) {
@@ -482,32 +468,37 @@ vanish = function(filename, graphs = T, bangbycillit = T){
 
 
 #Trying out the function (with jomfrurejsen)
-#titanic = vanish("Study2_G5_T3_Conversation.csv")
-#titanic = bind_rows(titanic)
+titanic = vanish("Study3_G1_T3_Conversation.csv")
+titanic = bind_rows(titanic)
 
 #Creating a list of all the files
-files = list.files(path = locpath, pattern = "*.csv")
+files = list.files(path = locpath, pattern = "*.csv", full.names = F)
 
 #Running all data in the beautiful function
 all_preprocessed = lapply(files, vanish)
-all_preprocessed = bind_rows(all_preprocessed)
-
+all_preprocessed = bind_rows(all_preprocessed) 
 ```
 
-```{r Removing some participant}
-# 
-#all_preprocessed <- 
-  if 
-
-all_preprocessed <- -c( if all_preprocessed$condition == "Synchronous"
-                        all_preprocessed$group == "G1")
-
-all_preprocessed2 <- all_preprocessed[remove(all_preprocessed$condition=='Synchronous' 
-& all_preprocessed$group == "G1"), ]
-
+```{r Outlier}
+newdata <- all_preprocessed
+newdata <-newdata[!(newdata$condition=="Synchronous" & newdata$group=="G9"),] 
 ```
 
-- Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
+```{r Median optimal parametres}
+#Using median (more robust to outliers)
+#NB: note that delay is not allowed to be 0, then set it to 1! 
+optradius_resp = median(newdata$optRadiusResp, na.rm = T) 
+optemddim_resp = median(newdata$optEmbdimResp, na.rm = T)
+optdelay_resp = median(newdata$optDelayResp, na.rm = T)
+
+optradius_hr = median(newdata$optRadiusHR, na.rm = T)
+#optradius_hr = 
+optemddim_hr = median(newdata$optEmbdimHR, na.rm = T)
+#optemddim_hr =
+#optdelay_hr = median(newdata$optDelayHR, na.rm = T)
+optdelay_hr = 5  
+```
+
 
 ### Creating controls: shuffled controls
  - loop through all pairs and conditions
@@ -515,25 +506,198 @@ all_preprocessed2 <- all_preprocessed[remove(all_preprocessed$condition=='Synchr
  - run crqa and save the output. NB. which delay, embed, radius parameters should you use?
  - statistically compare the crqa indexes in real and shuffled pairs
       Compare means of the stats --> do it across conditions + one for each of the indexes
-```{r Shuffling}
+
+  1. First getting the data's recurrence measures
+```{r Loop RR}
+newdata <- newdata %>%
+  mutate(group_trial = str_c(group, trial, sep = " "))
+
+pairs <- unique(newdata$group_trial)
+
+par = list(lgM = 50, steps = seq(1, 6, 1), radiusspan = 100, radiussample = 40, normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, tw = 0, whiteline = FALSE, recpt = FALSE, fnnpercent = 10, typeami = "mindip")
+
+crqa_df_hr <- NULL
+crqa_df_resp <- NULL
+
+# Loop for HR
+for (i in pairs){
+  currentpair = filter(newdata, group_trial == i)
+  Results=crqa(currentpair$HR1, currentpair$HR2, delay=optdelay_hr, embed=optemddim_hr, radius=optradius_hr, normalize=0 ,rescale=0 , mindiagline = 2 ,minvertline = 2)
+  
+  temp_df <- data_frame(group_trial = unique(currentpair$group_trial),study = unique(currentpair$study),group = unique(currentpair$group),trial = unique(currentpair$trial),condition = unique(currentpair$condition), RR = Results$RR, DET = Results$DET, NRLINE = Results$NRLINE, LMAX = Results$maxL, L = Results$L,ENTR = Results$ENTR, rENTR = Results$rENTR, LAM = Results$LAM, TT = Results$TT)
+if (i == 1){
+    crqa_df_hr <- temp_df
+  } else {
+    crqa_df_hr <- rbind(crqa_df_hr, temp_df)
+  }
+}
 
 
+# Loop for Resp 
+for (i in pairs){
+  currentpair = filter(newdata, group_trial == i)
+  Results=crqa(currentpair$Resp1, currentpair$Resp2, delay=optdelay_resp, embed=optemddim_resp, radius=optradius_resp, normalize=0 ,rescale=0 , mindiagline = 2 ,minvertline = 2)
+
+  temp_df <- data_frame(group_trial = unique(currentpair$group_trial),study = unique(currentpair$study),group = unique(currentpair$group),trial = unique(currentpair$trial),condition = unique(currentpair$condition), RR = Results$RR, DET = Results$DET, NRLINE = Results$NRLINE, LMAX = Results$maxL, L = Results$L,ENTR = Results$ENTR, rENTR = Results$rENTR, LAM = Results$LAM, TT = Results$TT)
+if (i == 1){
+    crqa_df_resp <- temp_df
+  } else {
+    crqa_df_resp <- rbind(crqa_df_resp, temp_df)
+  }
+}
 
 
+mean(crqa_df_hr$RR) # [1] 4.377326
+mean(crqa_df_resp$RR) # [1] 4.13281
 
-
-
+#median(crqa_df_hr$RR)
+#median(crqa_df_resp$RR)
 
 ```
  
+  2. Now getting the recurrence measures for the data in shuffled pairs
+```{r Shuffled pairs loop}
+newdata <- newdata %>%
+  mutate(group_trial = str_c(group, trial, sep = " "))
  
- 
- 
- 
+pairs <- unique(newdata$group_trial) 
+
+par = list(lgM = 50, steps = seq(1, 6, 1), radiusspan = 100, radiussample = 40, normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, tw = 0, whiteline = FALSE, recpt = FALSE, fnnpercent = 10, typeami = "mindip")
+
+crqa_df_hr_shuf <- NULL
+crqa_df_resp_shuf <- NULL
+
+# Loop for HR
+set.seed(13)
+for (i in pairs){
+  currentpair = filter(newdata, group_trial == i)
+  Results=crqa(sample(currentpair$HR1), sample(currentpair$HR2), delay=optdelay_hr, embed=optemddim_hr, radius=optradius_hr, normalize=0 ,rescale=0 , mindiagline = 2 ,minvertline = 2)
+  
+  temp_df <- data_frame(group_trial = unique(currentpair$group_trial),study = unique(currentpair$study),group = unique(currentpair$group),trial = unique(currentpair$trial),condition = unique(currentpair$condition), RR = Results$RR, DET = Results$DET, NRLINE = Results$NRLINE, LMAX = Results$maxL, L = Results$L,ENTR = Results$ENTR, rENTR = Results$rENTR, LAM = Results$LAM, TT = Results$TT)
+if (i == 1){
+    crqa_df_hr_shuf <- temp_df
+  } else {
+    crqa_df_hr_shuf <- rbind(crqa_df_hr_shuf, temp_df)
+  }
+}
+
+
+# Loop for Resp 
+set.seed(13)
+for (i in pairs){
+  currentpair = filter(newdata, group_trial == i)
+  Results=crqa(sample(currentpair$Resp1), sample(currentpair$Resp2), delay=optdelay_resp, embed=optemddim_resp, radius=optradius_resp, normalize=0 ,rescale=0 , mindiagline = 2 ,minvertline = 2)
+
+  temp_df <- data_frame(group_trial = unique(currentpair$group_trial),study = unique(currentpair$study),group = unique(currentpair$group),trial = unique(currentpair$trial),condition = unique(currentpair$condition), RR = Results$RR, DET = Results$DET, NRLINE = Results$NRLINE, LMAX = Results$maxL, L = Results$L,ENTR = Results$ENTR, rENTR = Results$rENTR, LAM = Results$LAM, TT = Results$TT)
+if (i == 1){
+    crqa_df_resp_shuf <- temp_df
+  } else {
+    crqa_df_resp_shuf <- rbind(crqa_df_resp_shuf, temp_df)
+  }
+}
+
+
+mean(crqa_df_hr_shuf$RR)    # [1] 0.004663804
+mean(crqa_df_resp_shuf$RR)  # [1] 4.022755
+
+#median(crqa_df_hr$RR)
+#median(crqa_df_resp$RR) 
+```
+
+  3. Statistic comparison between the data and shuffled data 
+```{r Stats - T-Test}
+#### T-test for heart rate
+t.test(crqa_df_hr$RR, crqa_df_hr_shuf$RR)
+
+## Results
+# t = 7.8317, df = 25, p-value = 3.454e-08
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+# 3.222768 5.522557
+#sample estimates:
+#  mean of x   mean of y 
+#4.377326239 0.004663804 
+
+
+#### T-test for Respiration
+t.test(crqa_df_resp$RR, crqa_df_resp_shuf$RR) 
+## Results
+# t = 0.48347, df = 48.644, p-value = 0.6309
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+# -0.3474788  0.5675897
+#sample estimates:
+#mean of x mean of y 
+# 4.132810  4.022755 
+```
+
+
 ### TRICKY! Creating controls: surrogate pair controls
  - Per each real pair, identify at least one surrogate pair (matching one of the participants, with somebody doing the same task, but in a different pair). Tip: Malte will share a method to do this on screen.
  - Run crqa on all the surrogate pairs and save the output. NB. which delay, embed, radius parameters should you use?
- - Test whether crqa shows a difference between real and surrogate pairs
+ 
+  1. First creating a function to extract rqa in the next sections loop
+```{r Function: Extract rqa}
+# Defining a function to extract rqa values 
+rqa_extractor = function(t1, t2, embed, delay, radius){ #making a function which applied the optimal parameters and then saves the rqa results 
+  result = try(crqa(t1, t2, embed = embed, delay = delay, radius = radius, normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, tw = 0, whiteline = FALSE, recpt = FALSE)) 
+  if (length(result) > 1){ 
+    results_df = data.frame(RR = result[1], DET = result[2], NRLINE = result[3], maxL = result[4], L = result[5], ENTR = result[6], rENTR = result[7], LAM = result[8], TT = result[9]) 
+  } 
+  else { results_df = data.frame(RR = NA, DET = NA, NRLINE = NA, maxL = NA, L = NA, ENTR = NA, rENTR = NA, LAM = NA, TT = NA) 
+  } 
+  return(results_df) 
+}
+```
+
+  2. Getting the recurrence measures for the data in surrogate pairs
+```{r Surrogate pairs loop}
+#Surrogate pairs (Kenneths kode)
+i = 1 
+all_dat = newdata
+
+for (g in seq(unique(all_dat$group))){ #loop through all the groups 
+  g1 = unique(all_dat$group)[g]
+  non_g1 = unique(all_dat$group)[unique(all_dat$group)!= g1] #a list of groups which does not include g1
+  g2 = sample(non_g1)[1] #randomly select a group which is in the non_g1 vector
+  print(g1)
+
+  for (c in unique(all_dat$condition)){ #looping through conditions 
+    temp1 = subset(all_dat, group == g1 & condition == c) #e.g. the first group in condition 'turntaking
+    temp2 = subset(all_dat, group == g2 & condition == c) #e.g. the second group in condition 'turntaking
+      #doing rqa
+    result_Resp = rqa_extractor(t1 = temp1$Resp1, t2 = temp2$Resp2, embed = optemddim_resp, 
+                                delay = optdelay_resp, radius = optradius_resp)
+    result_HR = rqa_extractor(t1 = temp1$HR1, t2 = temp2$HR2, embed = optemddim_hr, 
+                              delay = optdelay_hr, radius = optradius_hr)
+    colnames(result_Resp) = paste(colnames(result_Resp), "Resp", sep = ".")
+    colnames(result_HR) = paste(colnames(result_HR), "HR", sep = ".")
+    
+    temp = cbind(result_Resp, result_HR)
+    temp$condition = c
+    temp$group1 = g1
+    temp$group2 = g2
+    if (i == 1){ #create df
+      surPair_rqa = temp
+      i = 2 #if you have already done this then don't do it again
+    } else { #append to df
+      surPair_rqa = rbind(surPair_rqa, temp)
+    }
+  print(c)
+  }
+}
+
+# Output = surPair_Rqa dataframe with the different parametre values for each pair
+
+```
+
+  3. Statistic comparison between the data and surrogate pairs
+```{r}
+ 
+ 
+```
+
+
 
 ### Testing effects of conditions
  - make a (probably underpowered) mixed model testing effects of the different conditions on heart rate and respiration coordination
