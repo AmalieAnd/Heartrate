@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")    
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")     
  
 locpath <- setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Heart rate/Heart rate")  
 
@@ -262,7 +262,7 @@ Answer: HR for sync is somewhat coordinated.
 
 - Run crqa on heart rate and respiration data (find parameters, run crqa)
 ```{r crqa}
-# Finding the optimal parameters: run on all pairs:
+# Finding the optimal parameters: run on all pairs: 
 
 #lgM = Maximum lag
 #radius span = 2?     increasing radius step means smaller steps
@@ -508,7 +508,7 @@ optdelay_hr = median(newdata$optDelayHR, na.rm = T)
 
   1. First getting the data's recurrence measures
 ```{r Loop RR}
-newdata <- newdata %>% 
+newdata <- newdata %>%  
   mutate(group_trial = str_c(group, trial, sep = " "))
 
 pairs <- unique(newdata$group_trial)
@@ -556,7 +556,7 @@ mean(crqa_df_resp$RR) # [1] 4.13281
  
   2. Now getting the recurrence measures for the data in shuffled pairs
 ```{r Shuffled pairs loop}
-newdata <- newdata %>%
+newdata <- newdata %>% 
   mutate(group_trial = str_c(group, trial, sep = " "))
   
 pairs <- unique(newdata$group_trial) 
@@ -607,7 +607,6 @@ mean(crqa_df_resp_shuf$RR)  # [1] 4.022755
 ```{r Stats - T-Test}
 #### T-test for heart rate
 t.test(crqa_df_hr$RR, crqa_df_hr_shuf$RR)
- 
 ## Results
 # t = 7.8317, df = 25, p-value = 3.454e-08
 #alternative hypothesis: true difference in means is not equal to 0
@@ -628,6 +627,19 @@ t.test(crqa_df_resp$RR, crqa_df_resp_shuf$RR)
 #sample estimates:
 #mean of x mean of y 
 # 4.132810  4.022755 
+
+
+# DET
+t.test(crqa_df_hr$DET, crqa_df_resp_shuf$DET)
+t.test(crqa_df_resp$DET, crqa_df_resp_shuf$DET) 
+
+# L
+t.test(crqa_df_hr$L, crqa_df_resp_shuf$L)
+t.test(crqa_df_resp$L, crqa_df_resp_shuf$L) 
+
+# Lmax
+t.test(crqa_df_hr$LMAX, crqa_df_resp_shuf$LMAX)
+t.test(crqa_df_resp$LMAX, crqa_df_resp_shuf$LMAX) 
 ```
 
 
@@ -689,11 +701,50 @@ for (g in seq(unique(all_dat$group))){ #loop through all the groups
 # Output = surPair_Rqa dataframe with the different parametre values for each pair
 ```
 
+```{r Collecting df's}
+# Creating columns in order to gather data later
+surPair_rqa$study = "Study3"
+surPair_rqa$group_trial = NA
+surPair_rqa$trial = NA
+
+# Selecting variables
+sur_hr <- select(surPair_rqa, c(RR.HR, DET.HR, NRLINE.HR, maxL.HR, L.HR, ENTR.HR, rENTR.HR,  LAM.HR, TT.HR, condition, group1, group2, trial, group_trial, study))
+
+sur_Resp <- select(surPair_rqa, c(RR.Resp, DET.Resp, NRLINE.Resp, maxL.Resp, L.Resp, ENTR.Resp, rENTR.Resp,  LAM.Resp, TT.Resp, condition, group1, group2, trial, group_trial, study))
+
+# Renaming
+sur_hr <- rename.vars(sur_hr, c('RR.HR', 'DET.HR','NRLINE.HR', 'maxL.HR', 'L.HR', 'ENTR.HR','rENTR.HR', 'LAM.HR', 'TT.HR'), c('RR', 'DET','NRLINE','LMAX','L','ENTR','rENTR','LAM','TT'))
+
+sur_Resp <- rename.vars(sur_Resp, c('RR.Resp', 'DET.Resp', 'NRLINE.Resp', 'maxL.Resp', 'L.Resp', 'ENTR.Resp', 'rENTR.Resp', 'LAM.Resp', 'TT.Resp'), c('RR','DET','NRLINE','LMAX','L','ENTR','rENTR','LAM','TT'))
+
+# Binding
+crqa_df_hr$Comparison = "Regular"
+crqa_df_hr_shuf$Comparison = "Shuffled"
+sur_hr$Comparison <- "Surpair"
+
+crqa_df_resp$Comparison = "Regular"
+crqa_df_resp_shuf$Comparison = "Shuffled"
+sur_Resp$Comparison <- "Surpair"
+
+sur_hr$group = sur_hr$group1
+sur_hr = select(sur_hr, -c(group1, group2)) 
+
+sur_Resp$group = sur_Resp$group1
+sur_Resp = select(sur_Resp, -c(group1, group2))
+
+#Final data
+all_crqa_hr <- rbind(crqa_df_hr, crqa_df_hr_shuf, sur_hr)
+all_crqa_resp <- rbind(crqa_df_resp, crqa_df_resp_shuf, sur_Resp)
+
+#write.csv(all_crqa_hr, file = "df_hr.csv")
+#write.csv(all_crqa_resp, file = "df_resp.csv")
+```
+
   3. Statistic comparison between the data and surrogate pairs
-```{r T-test: RR}
+```{r T-tests: RR}
 ## T-test: HR comparison of regular to surrogate
 t.test(crqa_df_hr$RR, surPair_rqa$RR.HR)
-# t = -0.5735, df = 32.025, p-value = 0.5703
+# t = -0.5735, df = 32.025, p-value = 0.5703 
 #alternative hypothesis: true difference in means is not equal to 0
 #95 percent confidence interval:
 # -4.174809  2.340385
@@ -715,21 +766,176 @@ t.test(crqa_df_resp$RR, surPair_rqa$RR.Resp)
 # DET
 t.test(crqa_df_hr$DET, surPair_rqa$DET.HR)
 t.test(crqa_df_resp$DET, surPair_rqa$DET.Resp) 
-
+ 
 # L
 t.test(crqa_df_hr$L, surPair_rqa$L.HR)
 t.test(crqa_df_resp$L, surPair_rqa$L.Resp) 
 
+# Lmax
+t.test(crqa_df_hr$LMAX, surPair_rqa$maxL.HR)
+t.test(crqa_df_resp$LMAX, surPair_rqa$maxL.Resp) 
+
 # NO difference between real and surrogate in different measures --> surrogate 
+``` 
+
+
+  Creating models for statistical comparison between the OG, shuffled and surrogate pairs
+```{r Models for statistic comparison: Shuffled + surrogate}
+
+model1 <- lm(RR~Comparison, all_crqa_hr)
+summary(model1)
+
 ```
 
-```{r Models}
-model <-  lmer(RR~condition, crqa_df_hr)
 
+NOT USING THIS (underneath)
+```{r Summarise function}
 
-
+royalewithcheese = function(df){
+summarised_df = df  %>%
+  group_by(group_trial) %>% 
+  summarise(RR.HR = mean(RR.HR, na.rm = T), 
+         DET.HR = mean(DET.HR, na.rm = T), 
+         NRLINE.HR = mean(NRLINE.HR, na.rm = T),
+         maxL.HR = mean(maxL.HR, na.rm = T), 
+         L.HR = mean(L.HR, na.rm = T), 
+         ENTR.HR = mean(ENTR.HR, na.rm = T),
+         rENTR.HR = mean(rENTR.HR, na.rm = T),
+         LAM.HR = mean(LAM.HR, na.rm = T),
+         TT.HR = mean(TT.HR, na.rm = T),
+         
+         RR.Resp = mean(RR.Resp, na.rm = T), 
+         DET.Resp = mean(DET.Resp, na.rm = T), 
+         NRLINE.Resp = mean(NRLINE.Resp, na.rm = T),
+         maxL.Resp = mean(maxL.Resp, na.rm = T), 
+         L.Resp = mean(L.Resp, na.rm = T), 
+         ENTR.Resp = mean(ENTR.Resp, na.rm = T),
+         rENTR.Resp = mean(rENTR.Resp, na.rm = T),
+         LAM.Resp = mean(LAM.Resp, na.rm = T),
+         TT.Resp = mean(TT.Resp, na.rm = T),
+         condition = condition[1],
+         group = group[1],
+         trial = trial[1],
+         study = study[1])
+  return(summarised_df)
+}
 
 ```
+
+```{r BØNNES}
+### Testing the effect of surrogate pairs
+
+# Reading original data sets
+og_df = read.csv("final_df.csv") 
+shuf_df = read.csv("shuffled_df.csv")
+surPair_rqa = read.csv("surPairs.csv")
+surPair_rqa$X = NULL
+
+sum_og_df = royalewithcheese(crqa_df_hr)
+sum_shuf_df = royalewithcheese(shuf_df)
+
+sum_shuf_df$type = "Shuffled"
+sum_shuf_df$trial = NULL
+sum_shuf_df$study = NULL
+sum_shuf_df$filename = NULL
+sum_og_df$type = "Original"
+sum_og_df$trial = NULL
+sum_og_df$study = NULL
+sum_og_df$filename = NULL
+surPair_rqa$type = "Surrogate"
+surPair_rqa$group = surPair_rqa$group1
+surPair_rqa = select(surPair_rqa, -c(group1, group2))
+final_df = rbind(sum_shuf_df, sum_og_df, surPair_rqa)
+final_df$type = as.factor(final_df$type)
+final_df$type = relevel(final_df$type, ref = "Shuffled")
+#write.csv(final_df, "final_df.csv")
+
+
+#modelz
+mRR = lmer(RR.HR ~ type + (1|group), final_df)
+mDET = lmer(DET.HR ~ type + (1|group), final_df) 
+mNRLINE = lmer(NRLINE.HR ~ type + (1|group), final_df) 
+mTT = lmer(TT.HR ~ type + (1|group), final_df)
+mL = lmer(L.HR ~ type + (1|group), final_df)
+mMaxL = lmer(maxL.HR ~ type + (1|group), final_df)
+mENTR = lmer(ENTR.HR ~ type + (1|group), final_df) 
+mrENTR = lmer(rENTR.HR ~ type + (1|group), final_df) 
+mLAM = lmer(LAM.HR ~ type + (1|group), final_df) 
+ 
+summary(mRR)
+summary(mDET)  #significant!!!!!!!!!!1111
+summary(mTT)  #also significant!!11!1!1!
+summary(mL)  #woohoo!!
+summary(mMaxL) #helzz yeah
+summary(mNRLINE)
+summary(mENTR) #yep
+summary(mrENTR) #yepyep
+summary(mLAM) #yepyepyep
+
+mRR = lmer(RR.Resp ~ type  + (1|group), final_df)
+mDET = lmer(DET.Resp ~ type + (1|group), final_df)
+mTT = lmer(TT.Resp ~ type + (1|group), final_df)
+mL = lmer(L.Resp ~ type + (1|group), final_df)
+mMaxL = lmer(maxL.Resp ~ type + (1|group), final_df)
+mNRLINE = lmer(NRLINE.Resp ~ type + (1|group), final_df) 
+mENTR = lmer(ENTR.Resp ~ type + (1|group), final_df) 
+mrENTR = lmer(rENTR.Resp ~ type + (1|group), final_df) 
+mLAM = lmer(LAM.Resp ~ type + (1|group), final_df) 
+
+summary(mRR)
+summary(mDET) #signifz
+summary(mTT) #sniiii
+summary(mL) #extra snugiz
+summary(mMaxL) #woopsz
+summary(mNRLINE) #yas
+summary(mENTR) #yas
+summary(mrENTR) #yas
+summary(mLAM) #helt sikkert
+r.squaredGLMM(m2)
+```
+ 
+
+Plots
+```{r Plots}
+ggplot(all_crqa_hr, aes(Comparison, RR)) +  
+  geom_bar(stat = "summary", width = 0.5) +
+  geom_errorbar(stat = "summary", fun.data = mean_cl_boot, width = 0.15, colour = "Black")
+
+ggplot(all_crqa_resp, aes(Comparison, RR)) + 
+  geom_bar(stat = "summary", width = 0.5) +
+  geom_errorbar(stat = "summary", fun.data = mean_cl_boot, width = 0.15, colour = "Black")
+
+```
+
+Recurrence plot
+```{r }
+### HR 
+radius_hr <- 2.65 
+delay_hr <-  8         
+emddim_hr <- 20          
+  
+# Choose a common value for delay, emb.dim and radius
+Results=crqa (g7_conv_1$HR1, g7_conv_1$HR2, delay=delay, embed=emddim, radius=radius, normalize=0, rescale=0, mindiagline = 2, minvertline = 2)
+
+## Lålå
+Profile=drpdfromts(g7_conv_1$Resp1, g7_conv_1$Resp2, datatype = 'continuous', ws=50, radius=radius)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+maxlag = Profile$maxlag/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+Prof
+
+ggplot(Prof, aes(timecourse, profile)) +
+  geom_line() +
+  geom_vline(xintercept = timecourse[maxlag], colour='red')
+
+# Recurrence plot
+RP=Results$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white","blue4")
+image(RP, xlab = "", ylab = "", col = cols)
+```
+
 
 
 
@@ -840,15 +1046,3 @@ The CRQA:
 - Take the MEDIAN after having gotten all the params 
     Not mean because: a median is more robust towards outliers
 - Preprocessing: don't replace outliers with the mean! 
-
-
-Loop for baselines:
-- 
-```{r}
-participants <- 1:10
-expand.grid(p1 = "participants", p2 = "participants")
-
-```
-
-
-
