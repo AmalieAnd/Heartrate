@@ -331,7 +331,7 @@ Chunks:
 - Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
 
 ```{r Loop to plot and preprocess} 
- 
+  
 p_load(gdata)  
 
 #Function that downsamples, rescales and  removes outliers. 
@@ -485,18 +485,17 @@ newdata <-newdata[!(newdata$condition=="Synchronous" & newdata$group=="G9"),]
 ```
 
 ```{r Median optimal parametres}
-#Using median (more robust to outliers)
+#Using median (more robust to outliers) 
 #NB: note that delay is not allowed to be 0, then set it to 1! 
 optradius_resp = median(newdata$optRadiusResp, na.rm = T) 
 optemddim_resp = median(newdata$optEmbdimResp, na.rm = T)
 optdelay_resp = median(newdata$optDelayResp, na.rm = T)
 
-optradius_hr = median(newdata$optRadiusHR, na.rm = T)
-#optradius_hr = 
+#optradius_hr = median(newdata$optRadiusHR, na.rm = T)
+optradius_hr = 2.65
 optemddim_hr = median(newdata$optEmbdimHR, na.rm = T)
-#optemddim_hr =
-#optdelay_hr = median(newdata$optDelayHR, na.rm = T)
-optdelay_hr = 5  
+optdelay_hr = median(newdata$optDelayHR, na.rm = T)
+#optdelay_hr = 5  
 ```
 
 
@@ -509,7 +508,7 @@ optdelay_hr = 5
 
   1. First getting the data's recurrence measures
 ```{r Loop RR}
-newdata <- newdata %>%
+newdata <- newdata %>% 
   mutate(group_trial = str_c(group, trial, sep = " "))
 
 pairs <- unique(newdata$group_trial)
@@ -547,7 +546,7 @@ if (i == 1){
 }
 
 
-mean(crqa_df_hr$RR) # [1] 4.377326
+mean(crqa_df_hr$RR) # [1] 4.039649
 mean(crqa_df_resp$RR) # [1] 4.13281
 
 #median(crqa_df_hr$RR)
@@ -559,7 +558,7 @@ mean(crqa_df_resp$RR) # [1] 4.13281
 ```{r Shuffled pairs loop}
 newdata <- newdata %>%
   mutate(group_trial = str_c(group, trial, sep = " "))
- 
+  
 pairs <- unique(newdata$group_trial) 
 
 par = list(lgM = 50, steps = seq(1, 6, 1), radiusspan = 100, radiussample = 40, normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, tw = 0, whiteline = FALSE, recpt = FALSE, fnnpercent = 10, typeami = "mindip")
@@ -608,7 +607,7 @@ mean(crqa_df_resp_shuf$RR)  # [1] 4.022755
 ```{r Stats - T-Test}
 #### T-test for heart rate
 t.test(crqa_df_hr$RR, crqa_df_hr_shuf$RR)
-
+ 
 ## Results
 # t = 7.8317, df = 25, p-value = 3.454e-08
 #alternative hypothesis: true difference in means is not equal to 0
@@ -632,14 +631,14 @@ t.test(crqa_df_resp$RR, crqa_df_resp_shuf$RR)
 ```
 
 
-### TRICKY! Creating controls: surrogate pair controls
+### Creating controls: surrogate pair controls
  - Per each real pair, identify at least one surrogate pair (matching one of the participants, with somebody doing the same task, but in a different pair). Tip: Malte will share a method to do this on screen.
  - Run crqa on all the surrogate pairs and save the output. NB. which delay, embed, radius parameters should you use?
  
   1. First creating a function to extract rqa in the next sections loop
 ```{r Function: Extract rqa}
 # Defining a function to extract rqa values 
-rqa_extractor = function(t1, t2, embed, delay, radius){ #making a function which applied the optimal parameters and then saves the rqa results 
+rqa_extractor = function(t1, t2, embed, delay, radius){ #making a function which applied the optimal parameters and then saves the rqa results  
   result = try(crqa(t1, t2, embed = embed, delay = delay, radius = radius, normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, tw = 0, whiteline = FALSE, recpt = FALSE)) 
   if (length(result) > 1){ 
     results_df = data.frame(RR = result[1], DET = result[2], NRLINE = result[3], maxL = result[4], L = result[5], ENTR = result[6], rENTR = result[7], LAM = result[8], TT = result[9]) 
@@ -653,7 +652,7 @@ rqa_extractor = function(t1, t2, embed, delay, radius){ #making a function which
   2. Getting the recurrence measures for the data in surrogate pairs
 ```{r Surrogate pairs loop}
 #Surrogate pairs (Kenneths kode)
-i = 1 
+i = 1  
 all_dat = newdata
 
 for (g in seq(unique(all_dat$group))){ #loop through all the groups 
@@ -688,13 +687,48 @@ for (g in seq(unique(all_dat$group))){ #loop through all the groups
 }
 
 # Output = surPair_Rqa dataframe with the different parametre values for each pair
-
 ```
 
   3. Statistic comparison between the data and surrogate pairs
-```{r}
- 
- 
+```{r T-test: RR}
+## T-test: HR comparison of regular to surrogate
+t.test(crqa_df_hr$RR, surPair_rqa$RR.HR)
+# t = -0.5735, df = 32.025, p-value = 0.5703
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+# -4.174809  2.340385
+#sample estimates:
+#mean of x mean of y 
+# 4.039649  4.956860  
+
+
+## T-test: Respiration comparison of regular to surrogate
+t.test(crqa_df_resp$RR, surPair_rqa$RR.Resp) 
+#t = 0.75387, df = 45.673, p-value = 0.4548
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+# -0.2708106  0.5950205
+#sample estimates:
+#mean of x mean of y 
+# 4.132810  3.970705 
+
+# DET
+t.test(crqa_df_hr$DET, surPair_rqa$DET.HR)
+t.test(crqa_df_resp$DET, surPair_rqa$DET.Resp) 
+
+# L
+t.test(crqa_df_hr$L, surPair_rqa$L.HR)
+t.test(crqa_df_resp$L, surPair_rqa$L.Resp) 
+
+# NO difference between real and surrogate in different measures --> surrogate 
+```
+
+```{r Models}
+model <-  lmer(RR~condition, crqa_df_hr)
+
+
+
+
 ```
 
 
@@ -715,7 +749,6 @@ These are the questions you need to be able to answer at the end of the assignme
 
 1) How do you preprocess heart rate and respiration data? Describe the process. If any data needs to be excluded, list the excluded data and motivate the exclusion.
 
-
 2) Do you observe interpersonal coordination in heart rate and respiration? Describe your control baseline, the method used to quantify coordination, and the statistical models used to infer whether coordination was higher than in the baseline. Report the results of the models.
 
 3) Do you observe differences in coordination between conditions? Report the models and results.
@@ -730,7 +763,7 @@ When you hand in the assignment for feedback, you can use the old data. But when
 NB: For this exercise, you will need to do something very similiar to what you've done before spread over several weeks. Ie parse data, look at the plots, decide on data cleaning, build a model, and finally evaluate and interpret the results of the models. Going back and copying the approach from previous exercises will likely be a great help.
 
 
---- CLASS: Talkthrough --- 
+--- CLASS: Talk through --- 
 #Preprocessing
 
 1. Downsampling. 
@@ -793,7 +826,7 @@ How to detect?
 
 --- FROM MALTE'S 2ND CLASS ---
 
-- CRQA needs parameters: delay, raidus
+- CRQA needs parameters: delay, radius
      delay: The space between timeseries. Delay of 0 = no space between the three datapoints --> they're the same point! Min number is 1 then! The amount of seconds between each signal
      radius: how far datapoints are away from each other for them to be considered recurring. 
      dimension: xxx
