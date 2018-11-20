@@ -897,13 +897,15 @@ r.squaredGLMM(m2)
 
 Plots
 ```{r Plots}
-ggplot(all_crqa_hr, aes(Comparison, RR)) +  
+ggplot(all_crqa_hr, aes(Comparison, RR)) +   
   geom_bar(stat = "summary", width = 0.5) +
   geom_errorbar(stat = "summary", fun.data = mean_cl_boot, width = 0.15, colour = "Black")
 
 ggplot(all_crqa_resp, aes(Comparison, RR)) + 
   geom_bar(stat = "summary", width = 0.5) +
   geom_errorbar(stat = "summary", fun.data = mean_cl_boot, width = 0.15, colour = "Black")
+
+# Update
 
 ```
 
